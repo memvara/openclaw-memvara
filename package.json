@@ -1,0 +1,19 @@
+{
+  "name": "@memvara/openclaw-memvara",
+  "version": "0.1.0",
+  "description": "OpenClaw plugin: hosted Memvara MCP (Streamable HTTP) plus the skill. Not a session-capture plugin.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "files": [
+    "index.js",
+    "openclaw.plugin.json",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}

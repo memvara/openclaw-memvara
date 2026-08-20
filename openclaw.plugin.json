@@ -1,0 +1,22 @@
+{
+  "id": "memvara",
+  "name": "Memvara",
+  "description": "Hosted memory: Streamable HTTP MCP plus the skill. Not a capture plugin.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "activation": {
+    "onStartup": false
+  },
+  "skills": ["./skills/memvara"],
+  "mcpServers": {
+    "memvara": {
+      "url": "https://app.memvara.dev/mcp",
+      "transport": "streamable-http",
+      "enabled": true
+    }
+  }
+}
