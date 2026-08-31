@@ -45,8 +45,10 @@ reachable as a command here without this package shipping one.
 
 The skill carries `scripts/memvara_auth.py` — inside the skill directory,
 so it is `scripts/memvara_auth.py` under wherever this skill is installed.
-In this repository that is `skills/memvara/scripts/memvara_auth.py`; loaded
-as a managed skill it is under `~/.openclaw/skills/memvara/`. It is the
+In this repository that is `skills/memvara/scripts/memvara_auth.py`.
+`openclaw plugins install` copies a plugin to `~/.openclaw/extensions/<id>`,
+and this manifest declares its skill at `./skills/memvara`, so an installed
+copy is under `~/.openclaw/extensions/memvara/skills/memvara/`. It is the
 device-code flow, standard library only, no `pip install`, and nothing
 left running when it returns. It also does `logout` and `stats`.
 
@@ -65,7 +67,7 @@ Until someone runs that probe against a reachable model, give the script
 an absolute path rather than trusting the agent to resolve one:
 
 ```bash
-python3 ~/.openclaw/skills/memvara/scripts/memvara_auth.py authenticate
+python3 ~/.openclaw/extensions/memvara/skills/memvara/scripts/memvara_auth.py authenticate
 ```
 
 ## Teach it your vocabulary

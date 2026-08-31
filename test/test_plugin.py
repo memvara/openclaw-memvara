@@ -524,9 +524,20 @@ class AuthScript(unittest.TestCase):
         self.assertIn(in_repo, text)
         self.assertTrue((ROOT / in_repo).is_file(),
                         f"the README says {in_repo}, and nothing is there")
-        self.assertIn("~/.openclaw/skills/memvara/scripts/memvara_auth.py", text,
-                      "the README gives only the in-repo path, and a reader whose skill "
-                      "is installed has no path that resolves on their machine")
+        # Built from the manifest rather than written out, because the first version of
+        # this guard string-matched a path nobody had checked and passed on the wrong one.
+        # `~/.openclaw/skills` is the MANAGED skills directory -- where the throwaway
+        # probe was placed by hand during measurement, which is what made it look right --
+        # while `openclaw plugins install` copies to `~/.openclaw/extensions/<id>` (the
+        # host's own docs/tools/plugin.md). A home directory cannot be resolved in CI, but
+        # the claim still has a referent: the manifest says where the skill sits inside
+        # the plugin, so the README's path has to be that, under the install root.
+        manifest = _json(ROOT / "openclaw.plugin.json")
+        declared = manifest["skills"][0].lstrip("./")
+        expected = f"~/.openclaw/extensions/{manifest['id']}/{declared}/scripts/memvara_auth.py"
+        self.assertIn(expected, text,
+                      f"the README should give the installed path {expected}; a reader "
+                      "whose plugin is installed otherwise has no path that resolves")
         self.assertIn("no `pip install`", text)
 
     def test_the_readme_says_the_probe_did_not_run_here(self) -> None:
