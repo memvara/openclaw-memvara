@@ -31,11 +31,42 @@ bundle MCP over HTTP ("stdio only today"). `mcp add` with
 
 - Auto-capture or auto-recall every turn
 - Take `plugins.slots.memory`
-- Ship `npx` or a local Python process
+- Ship `npx`, a daemon, or anything that keeps running
 
 ## Skill
 
 `skills/memvara/` is vendored from [memvara/memvara](https://github.com/memvara/memvara).
+
+OpenClaw exposes a skill as a user-invocable slash command by default
+(`user-invocable` in the frontmatter, default `true`), so the skill is
+reachable as a command here without this package shipping one.
+
+## When the browser sign-in will not finish
+
+The skill carries `scripts/memvara_auth.py` — inside the skill directory,
+so it is `scripts/memvara_auth.py` under wherever this skill is installed.
+In this repository that is `skills/memvara/scripts/memvara_auth.py`; loaded
+as a managed skill it is under `~/.openclaw/skills/memvara/`. It is the
+device-code flow, standard library only, no `pip install`, and nothing
+left running when it returns. It also does `logout` and `stats`.
+
+**Not verified on this host.** The other hosts were measured before this
+was written — a probe skill pointing at a sibling file came back with the
+nonce on Codex, Copilot and OpenCode, and came back empty with the skill
+unregistered. On OpenClaw the skill registered (`✓ ready`, source
+`openclaw-managed`) and the run could not be completed: the only model
+configured here was LM Studio on `:1234`, which was not running, so the
+agent turn returned `Connection error.` — a failure about the model, not
+an answer about path resolution. OpenClaw also documents `{baseDir}` as
+its own way for a skill to name its folder, which the vendored skill does
+not use, so a relative path may or may not resolve.
+
+Until someone runs that probe against a reachable model, give the script
+an absolute path rather than trusting the agent to resolve one:
+
+```bash
+python3 ~/.openclaw/skills/memvara/scripts/memvara_auth.py authenticate
+```
 
 ## Teach it your vocabulary
 

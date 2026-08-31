@@ -12,6 +12,7 @@ import pathlib
 import re
 import ssl
 import subprocess
+import sys
 import unittest
 import urllib.request
 
@@ -435,6 +436,125 @@ class Version(unittest.TestCase):
             source.count(f'"{self.VERSION}"'), 1,
             f"{self.VERSION} appears more than once in this file; VERSION is meant to be "
             "the single place the suite states the release")
+
+
+def _readme_prose(root: pathlib.Path) -> str:
+    """The README with every run of whitespace collapsed to one space.
+
+    Where prose wraps is not a fact about what it says. Matching raw text pins a line
+    break, so a reflow turns a guard red while the sentence is present and correct -- and
+    it lets a rewrapped reintroduction slip past `assertNotIn`.
+    """
+    return " ".join(root.joinpath("README.md").read_text(encoding="utf-8").split())
+
+
+class ModuleShape(unittest.TestCase):
+    """Nothing may be defined below `unittest.main()`.
+
+    Measured in the sibling repos: a class appended after the `__main__` block is
+    collected by `unittest discover` and NOT by `python3 test/test_plugin.py`, and both
+    print OK -- 26 tests one way and 21 the other, with nothing saying so. A passing run
+    must not be able to mean "the check never ran".
+    """
+
+    def test_nothing_is_defined_after_the_main_block(self) -> None:
+        import ast
+
+        body = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8")).body
+        guards = [i for i, node in enumerate(body)
+                  if isinstance(node, ast.If) and "__main__" in ast.dump(node.test)]
+        self.assertEqual(len(guards), 1, "expected exactly one __main__ block")
+        after = [type(node).__name__ for node in body[guards[0] + 1:]]
+        self.assertEqual(
+            after, [],
+            f"{after} is defined after `unittest.main()`, so "
+            "`python3 test/test_plugin.py` runs without it and still prints OK")
+
+
+class AuthScript(unittest.TestCase):
+    """The skill carries the device-code flow, and this host is the one that was not
+    measured.
+
+    Codex, Copilot and OpenCode were each probed before the design relied on them: a skill
+    whose SKILL.md held no nonce and pointed at a sibling file returned the nonce, and
+    returned nothing with the registration removed and the files still on disk. On OpenClaw
+    the skill REGISTERED (`openclaw skills list` showed it ready, source
+    `openclaw-managed`) and the turn could not run -- the only configured model was LM
+    Studio on `:1234` and it was not listening, so the agent returned `Connection error.`
+    That is a failure about the model and not an answer about path resolution, so no
+    verdict is recorded in either direction.
+
+    It matters more here than elsewhere because OpenClaw documents `{baseDir}` as its own
+    way for a skill to name its folder, and the vendored skill does not use it. So the
+    README gives an absolute path rather than trusting the agent to resolve a relative
+    one, and these tests hold it to saying that the question is open.
+    """
+
+    SCRIPT = SKILL / "scripts" / "memvara_auth.py"
+    COMMANDS = ("authenticate", "login", "logout", "stats")
+
+    def test_the_skill_ships_the_auth_script(self) -> None:
+        """Positive, because the failure to catch is a deletion."""
+        self.assertTrue(
+            self.SCRIPT.is_file(),
+            f"{self.SCRIPT.relative_to(ROOT)} is missing; the README tells the user it "
+            "is there")
+
+    def test_the_script_runs_here_and_names_every_command(self) -> None:
+        """Executed rather than read, on the interpreter running this suite. A byte diff
+        against the library cannot see a broken script: a library that shipped one hands
+        every repo two copies that are equally broken and agree."""
+        done = subprocess.run(
+            [sys.executable, str(self.SCRIPT), "not-a-command"],
+            capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 2, done.stdout + done.stderr)
+        for command in self.COMMANDS:
+            self.assertIn(command, done.stdout,
+                          f"the usage this prints omits {command}")
+
+    def test_the_readme_gives_a_path_that_does_not_need_resolving(self) -> None:
+        """The absolute form, because the relative one is exactly what is unverified here.
+
+        Asserted and then RESOLVED against this checkout for the in-repo path, so a README
+        naming a plausible path into the wrong directory fails rather than sending someone
+        nowhere.
+        """
+        text = _readme_prose(ROOT)
+        in_repo = "skills/memvara/scripts/memvara_auth.py"
+        self.assertIn(in_repo, text)
+        self.assertTrue((ROOT / in_repo).is_file(),
+                        f"the README says {in_repo}, and nothing is there")
+        self.assertIn("~/.openclaw/skills/memvara/scripts/memvara_auth.py", text,
+                      "the README gives only the in-repo path, and a reader whose skill "
+                      "is installed has no path that resolves on their machine")
+        self.assertIn("no `pip install`", text)
+
+    def test_the_readme_says_the_probe_did_not_run_here(self) -> None:
+        """The honest half, and the one a later reader will most want.
+
+        Stated positively -- the admission must be PRESENT -- because "the README does not
+        claim it works" is satisfied by a README that says nothing at all, and silence
+        here reads as verified. It names the reason too, so the next person knows the
+        probe is worth re-running rather than that the host is broken.
+        """
+        text = _readme_prose(ROOT)
+        self.assertIn("Not verified on this host", text)
+        self.assertIn("Connection error", text,
+                      "the README does not say WHY it is unverified, so a reader cannot "
+                      "tell a blocked measurement from a negative result")
+
+    def test_the_readme_no_longer_says_no_python_ships(self) -> None:
+        """It listed "a local Python process" under what this does not do, and one ships.
+
+        Both directions, against normalised prose so a rewrapped reintroduction is caught:
+        the false item must be gone AND the true half -- that nothing keeps running -- must
+        still be there.
+        """
+        text = _readme_prose(ROOT)
+        self.assertNotIn("local Python process", text,
+                         "the README still lists a local Python process among what this "
+                         "does not ship, and skills/memvara/scripts/ holds one")
+        self.assertIn("or anything that keeps running", text)
 
 
 if __name__ == "__main__":
