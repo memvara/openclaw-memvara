@@ -342,7 +342,7 @@ class Version(unittest.TestCase):
     stopped guarding.
     """
 
-    VERSION = "0.2.2"
+    VERSION = "0.2.3"
     DECLARED = {
         'openclaw.plugin.json',
         'package.json',
