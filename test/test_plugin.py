@@ -342,7 +342,7 @@ class Version(unittest.TestCase):
     stopped guarding.
     """
 
-    VERSION = "0.2.3"
+    VERSION = "0.2.4"
     DECLARED = {
         'openclaw.plugin.json',
         'package.json',
@@ -532,13 +532,44 @@ class AuthScript(unittest.TestCase):
         # host's own docs/tools/plugin.md). A home directory cannot be resolved in CI, but
         # the claim still has a referent: the manifest says where the skill sits inside
         # the plugin, so the README's path has to be that, under the install root.
+        # The install directory is `package.json`'s name, NOT the plugin manifest's `id`.
+        # They differ here -- id is `memvara`, the package is `@memvara/openclaw-memvara`
+        # -- and the host uses the package name: an end-to-end install landed at
+        # `~/.openclaw/extensions/openclaw-memvara/`, from a source directory called
+        # something else entirely, so it is not the source name either.
+        #
+        # This line has now been wrong twice. First it named the MANAGED skills directory,
+        # `~/.openclaw/skills/`, where the throwaway probe had been placed by hand. Then a
+        # review "fixed" it to the manifest id, which was a value computed from a file
+        # rather than a fact read off the host. Both looked right and neither was, because
+        # nobody had installed the plugin and looked until the end-to-end run.
         manifest = _json(ROOT / "openclaw.plugin.json")
+        package = _json(ROOT / "package.json")
         declared = manifest["skills"][0].lstrip("./")
-        expected = f"~/.openclaw/extensions/{manifest['id']}/{declared}/scripts/memvara_auth.py"
+        where = str(package["name"]).rsplit("/", 1)[-1]
+        expected = f"~/.openclaw/extensions/{where}/{declared}/scripts/memvara_auth.py"
         self.assertIn(expected, text,
                       f"the README should give the installed path {expected}; a reader "
                       "whose plugin is installed otherwise has no path that resolves")
         self.assertIn("no `pip install`", text)
+
+    def test_the_readme_gives_an_install_command_this_host_accepts(self) -> None:
+        """Measured against openclaw 2026.2.14, because the shipped one did not work.
+
+        `openclaw plugins install git:github.com/...` answers `unsupported npm spec:
+        protocol specs are not allowed`; installing the release zip answers `extracted
+        package missing package.json`; and the npm name in package.json is not published.
+        The host's own docs list a path, a tarball, a zip or an npm package -- no git URL.
+        A local directory is the only form that works.
+
+        Both directions: the working form must be present AND the form that fails must be
+        gone, so this cannot be satisfied by a README that stops saying how to install.
+        """
+        text = _readme_prose(ROOT)
+        self.assertIn("openclaw plugins install ./memvara", text,
+                      "the README does not give an install command this host accepts")
+        self.assertNotIn("plugins install git:", text,
+                         "the README still gives the git spec, which this host refuses")
 
     def test_the_readme_says_the_probe_did_not_run_here(self) -> None:
         """The honest half, and the one a later reader will most want.
