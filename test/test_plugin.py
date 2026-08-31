@@ -144,8 +144,18 @@ class Manifest(unittest.TestCase):
         self.assertNotIn("command", server)
 
     def test_package_is_not_a_tool_echo(self) -> None:
+        """The name is derived from the manifest, not written out.
+
+        This line used to pin the literal `@memvara/openclaw-memvara`, and that is how a
+        real defect survived two releases: the package name and the plugin id disagreed,
+        every `openclaw plugins install` ended in `Config validation failed`, and this
+        guard held the wrong value in place while agreeing with the file it was checking.
+        A claim and its guard frozen together, both wrong -- which this repository's own
+        CLAUDE.md names as its signature failure.
+        """
         pkg = _json(ROOT / "package.json")
-        self.assertEqual(pkg["name"], "@memvara/openclaw-memvara")
+        manifest = _json(ROOT / "openclaw.plugin.json")
+        self.assertEqual(pkg["name"], f"@memvara/{manifest['id']}")
         src = (ROOT / "index.js").read_text(encoding="utf-8")
         self.assertIn("register()", src)
         self.assertNotIn("defineToolPlugin", src)
@@ -342,7 +352,7 @@ class Version(unittest.TestCase):
     stopped guarding.
     """
 
-    VERSION = "0.2.4"
+    VERSION = "0.2.5"
     DECLARED = {
         'openclaw.plugin.json',
         'package.json',
@@ -552,6 +562,29 @@ class AuthScript(unittest.TestCase):
                       f"the README should give the installed path {expected}; a reader "
                       "whose plugin is installed otherwise has no path that resolves")
         self.assertIn("no `pip install`", text)
+
+    def test_the_package_name_and_the_plugin_id_agree(self) -> None:
+        """The host requires it, and refuses the install when they differ.
+
+        `openclaw plugins install` names the extension directory from `package.json` and
+        then writes a config entry keyed by that name, which is validated against the
+        plugin manifest's `id`. Until 0.2.5 the two disagreed -- id `memvara`, package
+        `@memvara/openclaw-memvara` -- and every install ended in
+        `Config validation failed: plugins.entries.openclaw-memvara: plugin not found`,
+        leaving `plugins` absent from `openclaw.json`. `openclaw doctor` said so plainly:
+        `WARN memvara: plugin id mismatch`.
+
+        The plugin still loaded, which is why this survived two releases and was found
+        only by installing the published artifact and reading the output. Nothing in this
+        repository could see it: both files were internally consistent, and it is the
+        relationship BETWEEN them that the host cares about.
+        """
+        manifest = _json(ROOT / "openclaw.plugin.json")
+        package = _json(ROOT / "package.json")
+        self.assertEqual(
+            str(package["name"]).rsplit("/", 1)[-1], manifest["id"],
+            "package.json's name and the manifest id must agree, or `openclaw plugins "
+            "install` writes a config entry the host then rejects")
 
     def test_the_readme_gives_an_install_command_this_host_accepts(self) -> None:
         """Measured against openclaw 2026.2.14, because the shipped one did not work.
