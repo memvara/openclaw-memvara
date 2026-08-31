@@ -58,12 +58,12 @@ The skill carries `scripts/memvara_auth.py` — inside the skill directory,
 so it is `scripts/memvara_auth.py` under wherever this skill is installed.
 In this repository that is `skills/memvara/scripts/memvara_auth.py`.
 `openclaw plugins install` copies a plugin to `~/.openclaw/extensions/`, under
-the name in `package.json` rather than the `id` in the plugin manifest — those
-differ here, and the directory is `openclaw-memvara`. With the skill declared at
-`./skills/memvara`, an installed copy is under
-`~/.openclaw/extensions/openclaw-memvara/skills/memvara/`. Measured on
-openclaw 2026.2.14 by installing and looking, after two earlier guesses at this
-path were both wrong. It is the
+the name in `package.json`. That name and the `id` in the plugin manifest have
+to agree, because the host keys its config entry by the former and validates it
+against the latter; they did not agree until 0.2.5, and the install ended in
+`Config validation failed: plugin not found`. Both are `memvara` now, so an
+installed copy is under `~/.openclaw/extensions/memvara/skills/memvara/`.
+Measured on openclaw 2026.2.14 by installing and looking. It is the
 device-code flow, standard library only, no `pip install`, and nothing
 left running when it returns. It also does `logout` and `stats`.
 
@@ -82,7 +82,7 @@ Until someone runs that probe against a reachable model, give the script
 an absolute path rather than trusting the agent to resolve one:
 
 ```bash
-python3 ~/.openclaw/extensions/openclaw-memvara/skills/memvara/scripts/memvara_auth.py authenticate
+python3 ~/.openclaw/extensions/memvara/skills/memvara/scripts/memvara_auth.py authenticate
 ```
 
 ## Teach it your vocabulary
