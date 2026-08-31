@@ -17,8 +17,19 @@ Install this package for the skill (and a native `mcpServers` declaration the
 host may honor in a later OpenClaw):
 
 ```
-openclaw plugins install git:github.com/memvara/openclaw-memvara
+curl -fsSL -o memvara.zip \
+  https://github.com/memvara/openclaw-memvara/releases/latest/download/plugin.zip
+unzip memvara.zip -d memvara && openclaw plugins install ./memvara
 ```
+
+A local directory, because it is the only form that works. Measured against
+openclaw 2026.2.14: passing a git URL is refused with `unsupported npm spec:
+protocol specs are not allowed`, passing the zip itself is refused with
+`extracted package missing package.json` (the host wants npm's
+`package/`-prefixed layout), and the npm name in `package.json` is not
+published. The host's own docs list a path, a tarball, a zip or an npm
+package — no git URL among them. An earlier version of this file told you to
+install from a git URL, which never worked on this host.
 
 ## Why this exists
 
@@ -46,9 +57,13 @@ reachable as a command here without this package shipping one.
 The skill carries `scripts/memvara_auth.py` — inside the skill directory,
 so it is `scripts/memvara_auth.py` under wherever this skill is installed.
 In this repository that is `skills/memvara/scripts/memvara_auth.py`.
-`openclaw plugins install` copies a plugin to `~/.openclaw/extensions/<id>`,
-and this manifest declares its skill at `./skills/memvara`, so an installed
-copy is under `~/.openclaw/extensions/memvara/skills/memvara/`. It is the
+`openclaw plugins install` copies a plugin to `~/.openclaw/extensions/`, under
+the name in `package.json` rather than the `id` in the plugin manifest — those
+differ here, and the directory is `openclaw-memvara`. With the skill declared at
+`./skills/memvara`, an installed copy is under
+`~/.openclaw/extensions/openclaw-memvara/skills/memvara/`. Measured on
+openclaw 2026.2.14 by installing and looking, after two earlier guesses at this
+path were both wrong. It is the
 device-code flow, standard library only, no `pip install`, and nothing
 left running when it returns. It also does `logout` and `stats`.
 
@@ -67,7 +82,7 @@ Until someone runs that probe against a reachable model, give the script
 an absolute path rather than trusting the agent to resolve one:
 
 ```bash
-python3 ~/.openclaw/extensions/memvara/skills/memvara/scripts/memvara_auth.py authenticate
+python3 ~/.openclaw/extensions/openclaw-memvara/skills/memvara/scripts/memvara_auth.py authenticate
 ```
 
 ## Teach it your vocabulary
